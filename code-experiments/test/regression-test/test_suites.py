@@ -9,7 +9,7 @@ import os, sys
 import time
 import numpy as np
 import cocoex
-
+import bbobbenchmarks
 
 def _is_equal(x, y):
     """return scalar or vector, where `x` and `y` can be a scalar
@@ -73,6 +73,39 @@ def regression_test_a_suite(suite_name, filename):
     if verbose:
         print("done in %.1fs" % (time.clock() - t0))
 
+
+def regression_test_best_parameter_bbob():
+    """
+    Tests whether the best_parameter values of the `bbob` 
+    suite coincide with the old python implementation of
+    the same functions (as bbobbenchmarks.py taken from
+    the pycma module at https://github.com/CMA-ES/pycma
+    """
+
+    suite = cocoex.Suite('bbob', '', '')
+    for ifun in range(1, 25):
+        for i in range(1, 6):
+            fun = eval('bbobbenchmarks.F%d(i)' % ifun)
+            fun([1, 2])
+            funn = suite.get_problem_by_function_dimension_instance(ifun, 2, i)
+            funn._best_parameter('print')
+            with open('._bbob_problem_best_parameter.txt') as f:
+                xopt = [float(val) for val in f.read().split()]
+
+            if sum((fun.xopt - xopt)**2) > 1e-8:
+                print('f%d, i=%d' % (ifun, i))
+                print('xopt old:', fun.xopt)
+                print('xopt new:', xopt)
+
+            # try:
+            #     assert sum((fun.xopt - xopt)**2) < 1e-8
+            # except AssertionError:
+            #     print('f%d, i=%d' % (ifun, i))
+            #     print('xopt old:', fun.xopt)
+            #     print('xopt new:', xopt)
+            #     raise
+
+
 if __name__ == "__main__":
     try:
         ndata = int(sys.argv[1])
@@ -90,7 +123,9 @@ if __name__ == "__main__":
                 os.path.join("data",
                              "regression_test_%ddata_for_suite_" % ndata + name + ".py"))
     
-    if 11 < 3: # test whether last dimensions of `bbob` and first of `bbob-largescale` match
-        regression_test_a_suite("bbob-largescale",
-                os.path.join("data",
-                             "regression_test_%d-bbobdata_for_bbob-largescalesuite_" % ndata + ".py"))
+        if 11 < 3: # test whether last dimensions of `bbob` and first of `bbob-largescale` match
+            regression_test_a_suite("bbob-largescale",
+                    os.path.join("data",
+                                 "regression_test_%d-bbobdata_for_bbob-largescalesuite_" % ndata + ".py"))
+
+        regression_test_best_parameter_bbob()
